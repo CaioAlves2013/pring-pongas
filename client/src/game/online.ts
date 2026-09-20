@@ -4,7 +4,7 @@ const SUPABASE_URL = "https://jvqxolwsluvxbmbjmudw.supabase.co";
 const SUPABASE_PUBLIC_KEY = "sb_publishable_Xw5MpItckpw-OGg9IZH98Q_H4XrDWcG";
 
 export type OnlineRole = "host" | "guest";
-export type OnlineInput = { z: number };
+export type OnlineInput = { x: number; z: number };
 export type OnlineState = {
   playerScore: number;
   botScore: number;
@@ -15,6 +15,8 @@ export type OnlineState = {
   pointWinner: "player" | "bot" | null;
   playerZ: number;
   botZ: number;
+  playerX: number;
+  botX: number;
   ballX: number;
   ballY: number;
   ballZ: number;
@@ -41,7 +43,7 @@ export class OnlineRoom {
   readonly code: string;
   readonly role: OnlineRole;
   private channel: RealtimeChannel | null = null;
-  private remoteInput = 0;
+  private remoteInput: OnlineInput = { x: 0, z: 0 };
   private latestState: OnlineState | null = null;
 
   constructor(code: string, role: OnlineRole) {
@@ -55,8 +57,9 @@ export class OnlineRoom {
     });
     this.channel = channel;
     channel.on("broadcast", { event: "input" }, ({ payload }) => {
-      if (this.role === "host") this.remoteInput = Number(payload?.z ?? 0);
-      callbacks.onInput({ z: Number(payload?.z ?? 0) });
+      const input = { x: Number(payload?.x ?? 0), z: Number(payload?.z ?? 0) };
+      if (this.role === "host") this.remoteInput = input;
+      callbacks.onInput(input);
     });
     channel.on("broadcast", { event: "state" }, ({ payload }) => {
       if (this.role === "guest") {
@@ -83,9 +86,9 @@ export class OnlineRoom {
     return status;
   }
 
-  sendInput(z: number) {
+  sendInput(input: OnlineInput) {
     if (!this.channel || this.role !== "guest") return;
-    void this.channel.send({ type: "broadcast", event: "input", payload: { z } });
+    void this.channel.send({ type: "broadcast", event: "input", payload: input });
   }
 
   getRemoteInput() {

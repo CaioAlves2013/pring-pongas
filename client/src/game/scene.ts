@@ -8,6 +8,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { Difficulty, GameSnapshot, MatchMode, TableTheme } from "./types";
 import { DIFFICULTIES, TABLES } from "./content";
 import type { OnlineRoom } from "./online";
@@ -22,6 +23,10 @@ const TABLE_TOP = 0.9;
 const PADDLE_Y = TABLE_TOP + 0.66;
 const PADDLE_X_PLAYER = -TABLE_LENGTH / 2 + 0.72;
 const PADDLE_X_BOT = TABLE_LENGTH / 2 - 0.72;
+const PLAYER_MIN_X = -TABLE_LENGTH / 2 + 0.55;
+const PLAYER_MAX_X = -TABLE_LENGTH / 2 + 2.65;
+const BOT_MIN_X = TABLE_LENGTH / 2 - 2.65;
+const BOT_MAX_X = TABLE_LENGTH / 2 - 0.55;
 const PADDLE_RADIUS = 0.78;
 const BALL_R = 0.25;
 const MIN_Z = -TABLE_WIDTH / 2 + 0.3;
@@ -122,23 +127,48 @@ export function createGameScene(
   netTop.material = edgeMat;
 
   const makePaddle = (name: string, material: StandardMaterial, x: number) => {
+    const root = new TransformNode(`${name}-root`, scene);
+    root.position.set(x, PADDLE_Y, 0);
     const paddle = MeshBuilder.CreateCylinder(name, { diameter: 1.55, height: 0.2, tessellation: 32 }, scene);
     paddle.rotation.z = Math.PI / 2;
-    paddle.position.set(x, PADDLE_Y, 0);
+    paddle.position.set(0, 0, 0);
+    paddle.parent = root;
     paddle.material = material;
     const face = MeshBuilder.CreateCylinder(`${name}-face`, { diameter: 1.26, height: 0.22, tessellation: 32 }, scene);
     face.rotation.z = Math.PI / 2;
-    face.position.set(x + (x < 0 ? 0.12 : -0.12), PADDLE_Y, 0);
-    face.material = mat(`${name}-face-material`, palette.night, 0.12);
+    face.position.set(x < 0 ? 0.12 : -0.12, 0, 0);
+    face.parent = root;
+    // Keep the paddle face in its team color; the previous black face blocked the FPS view.
+    face.material = material;
     const grip = MeshBuilder.CreateBox(`${name}-grip`, { width: 0.36, depth: 0.22, height: 0.54 }, scene);
-    grip.position.set(x + (x < 0 ? 0.44 : -0.44), TABLE_TOP + 0.04, 0);
+    grip.position.set(x < 0 ? 0.44 : -0.44, TABLE_TOP + 0.04 - PADDLE_Y, 0);
+    grip.parent = root;
     grip.material = material;
-    return paddle;
+    return root;
   };
   const player = makePaddle("player-raquete", playerMat, PADDLE_X_PLAYER);
   const bot = makePaddle("bot-raquete", botMat, PADDLE_X_BOT);
   const ball = MeshBuilder.CreateSphere("ping-pong-ball", { diameter: BALL_R * 2, segments: 20 }, scene);
   ball.material = ballMat;
+  const trailMaterial = mat("ball-trail", palette.yellow, 1.1);
+  trailMaterial.alpha = 0.28;
+  const trailMeshes = Array.from({ length: 8 }, (_, index) => {
+    const trail = MeshBuilder.CreateSphere(`ball-trail-${index}`, { diameter: BALL_R * 1.45, segments: 12 }, scene);
+    trail.material = trailMaterial;
+    trail.scaling.setAll(Math.max(0.2, 1 - index * 0.1));
+    trail.visibility = 0;
+    return trail;
+  });
+  const trailHistory: Vector3[] = [];
+  const updateBallTrail = () => {
+    trailHistory.unshift(ball.position.clone());
+    trailHistory.length = trailMeshes.length;
+    trailMeshes.forEach((trail, index) => {
+      const point = trailHistory[index];
+      trail.visibility = point ? Math.max(0, 1 - index / trailMeshes.length) : 0;
+      if (point) trail.position.copyFrom(point);
+    });
+  };
 
   const state = {
     status: "playing" as GameSnapshot["status"],
@@ -150,6 +180,8 @@ export function createGameScene(
     message: "SAQUE DO JOGADOR",
     pointWinner: null as Side | null,
     elapsed: 0,
+    playerX: PADDLE_X_PLAYER,
+    botX: PADDLE_X_BOT,
     playerZ: 0,
     botZ: 0,
     vx: 0,
@@ -171,6 +203,7 @@ export function createGameScene(
   let disposed = false;
   const demo = new URLSearchParams(window.location.search).has("demo");
   let emitTimer = 0;
+  let mouseX = PADDLE_X_PLAYER;
   let mouseZ = 0;
 
   const resetBall = () => {
@@ -183,7 +216,9 @@ export function createGameScene(
     state.targetSide = fromPlayer ? "bot" : "player";
     state.expectedBounceSide = state.server;
     state.bounced = false;
-    ball.position.set(fromPlayer ? PADDLE_X_PLAYER + 0.65 : PADDLE_X_BOT - 0.65, PADDLE_Y, fromPlayer ? state.playerZ : state.botZ);
+    ball.position.set(fromPlayer ? state.playerX + 0.65 : state.botX - 0.65, PADDLE_Y, fromPlayer ? state.playerZ : state.botZ);
+    trailHistory.length = 0;
+    trailMeshes.forEach((trail) => { trail.visibility = 0; });
     state.pointWinner = null;
     state.message = fromPlayer ? "SAQUE DO JOGADOR" : "SAQUE DO BOT";
   };
@@ -217,8 +252,10 @@ export function createGameScene(
         server: state.server,
         message: state.message,
         pointWinner: state.pointWinner,
-        playerZ: state.playerZ,
-        botZ: state.botZ,
+      playerZ: state.playerZ,
+      botZ: state.botZ,
+      playerX: state.playerX,
+      botX: state.botX,
         ballX: ball.position.x,
         ballY: ball.position.y,
         ballZ: ball.position.z,
@@ -286,25 +323,31 @@ export function createGameScene(
         state.message = remote.message;
         state.pointWinner = remote.pointWinner;
         state.playerZ = remote.playerZ;
+        state.playerX = remote.playerX;
+        state.botX = remote.botX;
         state.elapsed = remote.elapsed;
         state.vx = remote.ballVx;
         state.vz = remote.ballVz;
         state.ballVy = remote.ballVy;
         ball.position.set(remote.ballX, remote.ballY, remote.ballZ);
+        updateBallTrail();
       }
       player.position.z = state.playerZ;
       bot.position.z = state.botZ;
-      onlineRoom.sendInput(state.botZ);
+      onlineRoom.sendInput({ x: state.botX, z: state.botZ });
       return;
     }
     const desiredPlayer = demo ? Math.sin(state.elapsed * 2.2) * 3.15 : state.playerZ + localAxis * 7.5 * dt;
     state.playerZ += clamp(desiredPlayer - state.playerZ, -8 * dt, 8 * dt);
     state.playerZ = clamp(state.playerZ, MIN_Z, MAX_Z);
-    player.position.z = state.playerZ;
+    state.playerX = clamp(state.playerX, PLAYER_MIN_X, PLAYER_MAX_X);
+    player.position.set(state.playerX, PADDLE_Y, state.playerZ);
 
     state.botThink -= dt;
     if (onlineRoom?.role === "host") {
-      state.targetBotZ = clamp(onlineRoom.getRemoteInput(), MIN_Z, MAX_Z);
+      const remoteInput = onlineRoom.getRemoteInput();
+      state.targetBotZ = clamp(remoteInput.z, MIN_Z, MAX_Z);
+      state.botX = clamp(remoteInput.x, BOT_MIN_X, BOT_MAX_X);
     } else if (state.botThink <= 0) {
       state.botThink = difficulty.reactionTime;
       const projected = state.vx > 0 ? ball.position.z + (state.vz / Math.max(state.vx, 0.1)) * (PADDLE_X_BOT - ball.position.x) : ball.position.z;
@@ -314,7 +357,8 @@ export function createGameScene(
     }
     state.botZ += clamp(state.targetBotZ - state.botZ, -difficulty.movementSpeed * dt, difficulty.movementSpeed * dt);
     state.botZ = clamp(state.botZ, MIN_Z, MAX_Z);
-    bot.position.z = state.botZ;
+    if (onlineRoom?.role !== "host") state.botX = clamp(state.botX, BOT_MIN_X, BOT_MAX_X);
+    bot.position.set(state.botX, PADDLE_Y, state.botZ);
 
     if (state.pointTimer > 0) {
       state.pointTimer -= dt;
@@ -339,6 +383,7 @@ export function createGameScene(
     ball.position.z += state.vz * dt;
     state.ballVy += GRAVITY * dt;
     ball.position.y += state.ballVy * dt;
+    updateBallTrail();
     if (ball.position.z < MIN_Z + BALL_R || ball.position.z > MAX_Z - BALL_R) {
       ball.position.z = clamp(ball.position.z, MIN_Z + BALL_R, MAX_Z - BALL_R);
       state.vz *= -1;
@@ -366,22 +411,22 @@ export function createGameScene(
       state.message = state.bounced ? "QUICOU! DEVOLVE!" : "QUICOU NO SEU LADO!";
     }
 
-    const playerReach = ball.position.x <= PADDLE_X_PLAYER + 0.34 && ball.position.x >= PADDLE_X_PLAYER - 0.8;
-    const botReach = ball.position.x >= PADDLE_X_BOT - 0.34 && ball.position.x <= PADDLE_X_BOT + 0.8;
+    const playerReach = ball.position.x <= state.playerX + 0.34 && ball.position.x >= state.playerX - 0.8;
+    const botReach = ball.position.x >= state.botX - 0.34 && ball.position.x <= state.botX + 0.8;
     const playerHit = playerReach && state.vx < 0 && Math.abs(ball.position.z - state.playerZ) <= PADDLE_RADIUS && Math.abs(ball.position.y - PADDLE_Y) <= 0.92;
     const botHit = botReach && state.vx > 0 && Math.abs(ball.position.z - state.botZ) <= PADDLE_RADIUS && Math.abs(ball.position.y - PADDLE_Y) <= 0.92;
     if (playerHit) {
       if (!state.bounced) { scorePoint("bot"); return; }
-      ball.position.x = PADDLE_X_PLAYER + 0.86;
+      ball.position.x = state.playerX + 0.86;
       launchFromPaddle("player", clamp((ball.position.z - state.playerZ) / PADDLE_RADIUS, -1, 1));
     } else if (botHit) {
       if (!state.bounced) { scorePoint("player"); return; }
-      ball.position.x = PADDLE_X_BOT - 0.86;
+      ball.position.x = state.botX - 0.86;
       launchFromPaddle("bot", clamp((ball.position.z - state.botZ) / PADDLE_RADIUS, -1, 1));
     }
 
-    if (ball.position.x < PADDLE_X_PLAYER - 0.95) scorePoint("bot");
-    else if (ball.position.x > PADDLE_X_BOT + 0.95) scorePoint("player");
+    if (ball.position.x < state.playerX - 0.95) scorePoint("bot");
+    else if (ball.position.x > state.botX + 0.95) scorePoint("player");
   };
 
   const onKey = (event: KeyboardEvent) => {
@@ -406,13 +451,21 @@ export function createGameScene(
   };
   const onMouseMove = (event: MouseEvent) => {
     if (document.pointerLockElement === canvas) {
+      mouseX = clamp(mouseX + event.movementX * 0.035, PLAYER_MIN_X, PLAYER_MAX_X);
       mouseZ = clamp(mouseZ + event.movementY * 0.035, MIN_Z, MAX_Z);
     } else {
       const rect = canvas.getBoundingClientRect();
+      const horizontal = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+      mouseX = PLAYER_MIN_X + horizontal * (PLAYER_MAX_X - PLAYER_MIN_X);
       mouseZ = clamp(((event.clientY - rect.top) / rect.height - 0.5) * TABLE_WIDTH, MIN_Z, MAX_Z);
     }
-    if (onlineRoom?.role === "guest") state.botZ = mouseZ;
-    else state.playerZ = mouseZ;
+    if (onlineRoom?.role === "guest") {
+      state.botX = BOT_MIN_X + (mouseX - PLAYER_MIN_X) / (PLAYER_MAX_X - PLAYER_MIN_X) * (BOT_MAX_X - BOT_MIN_X);
+      state.botZ = mouseZ;
+    } else {
+      state.playerX = mouseX;
+      state.playerZ = mouseZ;
+    }
   };
   const onCanvasPointerDown = () => { void canvas.requestPointerLock?.(); };
   window.addEventListener("keydown", onKey);

@@ -87,7 +87,7 @@ export default function Home() {
             <h1>O esporte<br /><span>mais torto</span><br />do bairro.</h1>
             <p>Raquetes exageradas, bolas com atitude e um placar que não conhece a palavra calma. Entre na mesa e faça história — ou pelo menos faça barulho.</p>
             <div className="hero-actions"><button className="primary-button hero-button" onClick={() => startMatch("quick")}><Zap size={18} fill="currentColor" /> Partida rápida <ArrowRight size={18} /></button><button className="secondary-button" onClick={() => startMatch("random")}>Modo aleatório <Sparkles size={16} /></button><button className="online-button" onClick={openOnlineLobby}><Globe2 size={16} /> 2 jogadores online</button></div>
-            <div className="control-note"><span><kbd>MOUSE</kbd> mover raquete</span><span className="note-separator">·</span><span><kbd>ESPAÇO</kbd> pausar</span></div>
+            <div className="control-note"><span><kbd>MOUSE</kbd> mover livre</span><span className="note-separator">·</span><span><kbd>ESPAÇO</kbd> pausar</span></div>
           </div>
           <div className="hero-art" role="img" aria-label="Arte de referência: partida caótica de Pring Pongas"><div className="hero-art-overlay" /><div className="art-sticker sticker-one">PÁ!</div><div className="art-sticker sticker-two">+12</div><div className="art-caption"><span className="live-dot" /> MESA 01 / GINÁSIO ANTIGO</div><div className="art-ball">•ᴗ•</div></div>
         </section>
