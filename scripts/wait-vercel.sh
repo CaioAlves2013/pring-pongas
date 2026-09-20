@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -u
-url="https://pring-pongas-3pevo3oco-caioalves.vercel.app"
+url="https://pring-pongas-nky1zhwvs-caioalves.vercel.app"
 for i in $(seq 1 36); do
   body=$(curl -L -sS --max-time 10 "$url" || true)
   title=$(printf '%s' "$body" | grep -o '<title>[^<]*</title>' | head -1 || true)
