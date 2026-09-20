@@ -2,7 +2,7 @@
 
 ## Direção
 
-Construir um MVP web de pingue-pongue arcade em Canvas 2D, com uma partida contra bot, três modos de início, três mesas coerentes, três dificuldades, placar com aparência de transmissão esportiva caótica e progresso local. A interface usa a identidade **Pring Pongas**: azul-noite, roxo profundo, verde elétrico, coral, amarelo solar, azul-gelo, branco-gelo e lavanda acinzentada.
+Construir um MVP web de pingue-pongue arcade em Babylon.js 3D, com uma partida contra bot, três modos de início, três mesas coerentes, três dificuldades, placar com aparência de transmissão esportiva caótica e progresso local. A interface usa a identidade **Pring Pongas**: azul-noite, roxo profundo, verde elétrico, coral, amarelo solar, azul-gelo, branco-gelo e lavanda acinzentada.
 
 ## Riscos isolados
 

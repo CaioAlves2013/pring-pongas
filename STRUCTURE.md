@@ -6,18 +6,19 @@
 client/src/
 ├── App.tsx                         # Shell e roteamento mínimo
 ├── pages/Home.tsx                  # Menu, navegação e composição da partida
-├── components/PongCanvas.tsx       # Ponte React ↔ motor Canvas
+├── components/PongCanvas.tsx       # Ponte React ↔ motor Babylon.js
 ├── game/
 │   ├── types.ts                    # Tipos de estado e conteúdo
 │   ├── content.ts                  # Personagens, mesas e dificuldades
 │   ├── physics.ts                  # Funções puras de colisão e rebote
-│   └── PongGame.ts                 # Loop, input, IA, desenho e ciclo da partida
+│   ├── PongGame.ts                 # Loop 2D legado preservado para referência
+│   └── scene.ts                    # Cena 3D, mesa, rede, bola e raquetes
 └── index.css                       # Tokens, layout, textura e motion
 ```
 
 ## Responsabilidades
 
-`Home` controla somente a navegação da experiência, seleção de modo/dificuldade e o perfil local. `PongCanvas` cria uma instância do motor uma única vez por montagem, encaminha teclado/toque e apresenta snapshots. `PongGame` não importa React e é responsável por loop, estado de partida, renderização 2D, IA e emissão de snapshots. `physics.ts` contém cálculos determinísticos e testáveis isoladamente. `content.ts` mantém a configuração data-driven para futuras coleções.
+`Home` controla somente a navegação da experiência, seleção de modo/dificuldade e o perfil local. `PongCanvas` cria o `Engine` Babylon uma única vez por montagem, encaminha teclado e apresenta snapshots. `scene.ts` não importa React e é responsável pela cena 3D, loop, estado de partida, renderização, IA, colisões arcade e emissão de snapshots. `PongGame` e `physics.ts` permanecem isolados como referência 2D e base para testes futuros. `content.ts` mantém a configuração data-driven para futuras coleções.
 
 ## Fluxo de estados
 

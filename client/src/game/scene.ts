@@ -61,13 +61,13 @@ export function createGameScene(
   hemi.diffuse = color(palette.white);
   hemi.groundColor = color(palette.purple);
   const key = new PointLight("key-light", new Vector3(-4, 8, -3), scene);
-  key.intensity = 1.65;
+  key.intensity = 0.82;
   key.diffuse = color(palette.green);
   const rim = new PointLight("rim-light", new Vector3(5, 4, 5), scene);
-  rim.intensity = 1.15;
+  rim.intensity = 0.55;
   rim.diffuse = color(palette.coral);
   const glow = new GlowLayer("neon-glow", scene);
-  glow.intensity = 0.7;
+  glow.intensity = 0.42;
 
   const mat = (name: string, hex: string, emissive = 0) => {
     const material = new StandardMaterial(name, scene);
@@ -114,11 +114,16 @@ export function createGameScene(
   netTop.material = edgeMat;
 
   const makePaddle = (name: string, material: StandardMaterial, x: number) => {
-    const paddle = MeshBuilder.CreateBox(name, { width: PADDLE_W, depth: PADDLE_H, height: 0.72 }, scene);
-    paddle.position.set(x, TABLE_TOP + 0.42, 0);
+    const paddle = MeshBuilder.CreateCylinder(name, { diameter: 1.55, height: 0.2, tessellation: 32 }, scene);
+    paddle.rotation.z = Math.PI / 2;
+    paddle.position.set(x, TABLE_TOP + 0.5, 0);
     paddle.material = material;
+    const face = MeshBuilder.CreateCylinder(`${name}-face`, { diameter: 1.26, height: 0.22, tessellation: 32 }, scene);
+    face.rotation.z = Math.PI / 2;
+    face.position.set(x + (x < 0 ? 0.12 : -0.12), TABLE_TOP + 0.5, 0);
+    face.material = mat(`${name}-face-material`, palette.night, 0.12);
     const grip = MeshBuilder.CreateBox(`${name}-grip`, { width: 0.36, depth: 0.22, height: 0.54 }, scene);
-    grip.position.set(x, TABLE_TOP + 0.04, 0);
+    grip.position.set(x + (x < 0 ? 0.44 : -0.44), TABLE_TOP + 0.04, 0);
     grip.material = material;
     return paddle;
   };
