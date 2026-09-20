@@ -7,8 +7,8 @@
 - **Prompt:** direção de arte para jogo arcade de pingue-pongue caótico, com mesa inclinada, bola expressiva, raquetes em forma de P, adesivos, tinta, papel e a paleta definida pelo projeto.
 - **Uso:** referência de composição para o menu e para os desenhos procedurais do Canvas.
 - **Arquivo local:** `/home/ubuntu/webdev-static-assets/pring-pongas-identidade-visual.png`
-- **URL WebDev:** `/manus-storage/pring-pongas-identidade-visual_4140c50c.png`
-- **Status:** gerado, enviado ao armazenamento privado do WebDev e aplicado como arte principal do menu.
+- **Asset de produção:** `client/src/assets/pring-pongas-identidade-visual.webp` (empacotado pelo Vite para funcionar também na Vercel).
+- **Status:** gerado, otimizado para WebP e aplicado como arte principal do menu em preview e produção.
 
 ## Assets procedurais
 
