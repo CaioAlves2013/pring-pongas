@@ -271,8 +271,19 @@ export function createGameScene(
       emit();
     }
   };
+  const onTouchMove = (event: Event) => {
+    const axis = Number((event as CustomEvent<{ axis?: number }>).detail?.axis ?? 0);
+    state.playerZ = Math.max(MIN_Z, Math.min(MAX_Z, state.playerZ + axis * 0.28));
+  };
+  const onTouchPause = () => {
+    if (state.status === "paused") { state.status = "playing"; state.message = "VAI!"; }
+    else if (state.status === "playing") { state.status = "paused"; state.message = "PAUSA"; }
+    emit();
+  };
   window.addEventListener("keydown", onKey);
   window.addEventListener("keyup", onKey);
+  window.addEventListener("pring-touch-move", onTouchMove);
+  window.addEventListener("pring-touch-pause", onTouchPause);
   scene.onBeforeRenderObservable.add(() => {
     if (disposed) return;
     const dt = Math.min(engine.getDeltaTime() / 1000, 0.04);
@@ -282,5 +293,5 @@ export function createGameScene(
   });
   resetBall();
   emit();
-  return Promise.resolve({ scene, dispose: () => { disposed = true; window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); scene.dispose(); } });
+  return Promise.resolve({ scene, dispose: () => { disposed = true; window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); window.removeEventListener("pring-touch-move", onTouchMove); window.removeEventListener("pring-touch-pause", onTouchPause); scene.dispose(); } });
 }

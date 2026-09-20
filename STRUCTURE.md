@@ -13,7 +13,9 @@ client/src/
 │   ├── physics.ts                  # Funções puras de colisão e rebote
 │   ├── PongGame.ts                 # Loop 2D legado preservado para referência
 │   └── scene.ts                    # Cena 3D, mesa, rede, bola e raquetes
-└── index.css                       # Tokens, layout, textura e motion
+├── index.css                       # Tokens, layout, textura e motion
+├── public/manifest.json             # Manifesto PWA instalável
+└── public/pring-pongas-icon.svg     # Ícone leve do app mobile
 ```
 
 ## Responsabilidades

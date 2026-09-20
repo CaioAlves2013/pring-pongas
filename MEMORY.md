@@ -9,3 +9,4 @@
 - O projeto Supabase `pring-pongas` foi criado na organização `CaioAlves`, região `sa-east-1`, projeto `jvqxolwsluvxbmbjmudw`, e a migration `pring_pongas_schema` foi aplicada.
 - O push para o GitHub fornecido falhou com HTTP 403 porque a credencial atual não tem permissão de escrita; o commit local `02f90d4` contém a migração 3D e a migration SQL.
 - A conexão Vercel ainda não está disponível nesta sessão; a listagem de equipes retornou zero equipes.
+- A versão mobile foi adicionada como PWA instalável, com manifest, ícone SVG, safe-area, orientação paisagem e joystick touch vertical para mover a raquete.

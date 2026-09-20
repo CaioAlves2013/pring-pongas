@@ -1,0 +1,16 @@
+{
+  "name": "Pring Pongas",
+  "short_name": "Pring Pongas",
+  "description": "O esporte mais torto do bairro.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#15152B",
+  "theme_color": "#15152B",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/pring-pongas-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["games", "sports"]
+}
