@@ -1,5 +1,5 @@
 export type Difficulty = "easy" | "normal" | "hard";
-export type MatchMode = "quick" | "random" | "training";
+export type MatchMode = "quick" | "random" | "training" | "online";
 export type GameStatus = "playing" | "paused" | "won" | "lost";
 
 export type TableTheme = {
@@ -66,6 +66,12 @@ export type GameSnapshot = {
   difficulty: DifficultyConfig;
   mode: MatchMode;
   elapsed: number;
+  online?: {
+    roomCode: string;
+    role: "host" | "guest";
+    players: number;
+    connected: boolean;
+  };
 };
 
 export type Profile = {

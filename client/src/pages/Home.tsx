@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ChevronDown, Gamepad2, Library, Medal, Settings2, Sparkles, Target, Zap } from "lucide-react";
+import { ArrowRight, ChevronDown, Copy, Gamepad2, Globe2, Library, Medal, Settings2, Sparkles, Target, X, Zap } from "lucide-react";
 import { PongCanvas } from "@/components/PongCanvas";
 import { CHARACTERS, CHALLENGES, DIFFICULTIES, PADDLES, TABLES, randomFrom } from "@/game/content";
 import type { Difficulty, GameSnapshot, MatchMode, Profile, TableTheme } from "@/game/types";
 import { DEFAULT_PROFILE } from "@/game/types";
+import { makeRoomCode, OnlineRoom } from "@/game/online";
 
 const PROFILE_KEY = "pring-pongas-profile";
 
@@ -18,6 +19,10 @@ export default function Home() {
     try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null") ?? DEFAULT_PROFILE; } catch { return DEFAULT_PROFILE; }
   });
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [onlineLobbyOpen, setOnlineLobbyOpen] = useState(false);
+  const [onlineCode, setOnlineCode] = useState("");
+  const [onlineRole, setOnlineRole] = useState<"host" | "guest">("host");
+  const [onlineRoom, setOnlineRoom] = useState<OnlineRoom | null>(null);
 
   useEffect(() => { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }, [profile]);
 
@@ -38,6 +43,16 @@ export default function Home() {
     setScreen("match");
   };
 
+  const openOnlineLobby = () => { setOnlineCode(makeRoomCode()); setOnlineRole("host"); setOnlineLobbyOpen(true); };
+  const joinOnlineRoom = (role: "host" | "guest") => {
+    const code = onlineCode.trim().toUpperCase();
+    if (code.length !== 6) return;
+    setOnlineRoom(new OnlineRoom(code, role));
+    setMode("online");
+    setOnlineLobbyOpen(false);
+    setScreen("match");
+  };
+
   const finishMatch = useCallback((snapshot: GameSnapshot) => {
     if (snapshot.status !== "won" && snapshot.status !== "lost") return;
     setProfile((current) => ({
@@ -50,7 +65,7 @@ export default function Home() {
     }));
   }, []);
 
-  if (screen === "match") return <PongCanvas mode={mode} difficulty={difficulty} table={selectedTable} onBack={() => setScreen("home")} onRematch={() => startMatch(mode)} onComplete={finishMatch} />;
+  if (screen === "match") return <PongCanvas mode={mode} difficulty={difficulty} table={selectedTable} onlineRoom={onlineRoom ?? undefined} onBack={() => { setOnlineRoom(null); setScreen("home"); }} onRematch={() => onlineRoom ? setOnlineRoom(new OnlineRoom(onlineRoom.code, onlineRoom.role)) : startMatch(mode)} onComplete={finishMatch} />;
 
   return (
     <main className={`app-shell ${reducedMotion ? "reduced-motion" : ""}`}>
@@ -71,7 +86,7 @@ export default function Home() {
             <div className="eyebrow"><span className="spark-dot" /> ARCADE DE PINGUE-PONGUE <span className="eyebrow-line" /></div>
             <h1>O esporte<br /><span>mais torto</span><br />do bairro.</h1>
             <p>Raquetes exageradas, bolas com atitude e um placar que não conhece a palavra calma. Entre na mesa e faça história — ou pelo menos faça barulho.</p>
-            <div className="hero-actions"><button className="primary-button hero-button" onClick={() => startMatch("quick")}><Zap size={18} fill="currentColor" /> Partida rápida <ArrowRight size={18} /></button><button className="secondary-button" onClick={() => startMatch("random")}>Modo aleatório <Sparkles size={16} /></button></div>
+            <div className="hero-actions"><button className="primary-button hero-button" onClick={() => startMatch("quick")}><Zap size={18} fill="currentColor" /> Partida rápida <ArrowRight size={18} /></button><button className="secondary-button" onClick={() => startMatch("random")}>Modo aleatório <Sparkles size={16} /></button><button className="online-button" onClick={openOnlineLobby}><Globe2 size={16} /> 2 jogadores online</button></div>
             <div className="control-note"><span><kbd>W</kbd><kbd>S</kbd> mover</span><span className="note-separator">·</span><span><kbd>ESPAÇO</kbd> pausar</span></div>
           </div>
           <div className="hero-art" role="img" aria-label="Arte de referência: partida caótica de Pring Pongas"><div className="hero-art-overlay" /><div className="art-sticker sticker-one">PÁ!</div><div className="art-sticker sticker-two">+12</div><div className="art-caption"><span className="live-dot" /> MESA 01 / GINÁSIO ANTIGO</div><div className="art-ball">•ᴗ•</div></div>
@@ -98,6 +113,7 @@ export default function Home() {
       {screen === "challenges" && <section className="content-page narrow-page"><div className="page-heading"><div><span className="eyebrow">MISSÕES DA SEMANA</span><h1>Desafios</h1><p>Pequenas metas. Grandes histórias para contar no recreio.</p></div><button className="ghost-button" onClick={() => setScreen("home")}>Voltar</button></div><div className="challenge-list">{CHALLENGES.map((challenge) => { const done = profile.completedChallenges.includes(challenge.id); return <article className={`challenge-row ${done ? "done" : ""}`} key={challenge.id}><div className="challenge-icon"><Target size={20} /></div><div className="challenge-copy"><h2>{challenge.title} {done && <span>CONCLUÍDO</span>}</h2><p>{challenge.description}</p></div><strong>{challenge.reward}</strong><ArrowRight size={17} /></article>; })}</div><div className="challenge-tip"><Sparkles size={18} /><p><b>Dica de arena:</b> no modo Treino, a bola começa mais lenta. Use para aquecer o pulso e caçar seu próximo recorde.</p><button className="secondary-button" onClick={() => startMatch("training")}>Treinar agora</button></div></section>}
 
       {screen === "settings" && <section className="content-page narrow-page"><div className="page-heading"><div><span className="eyebrow">AJUSTES DO JOGADOR</span><h1>Configurações</h1><p>Faça o caos funcionar do seu jeito.</p></div><button className="ghost-button" onClick={() => setScreen("home")}>Voltar</button></div><div className="settings-list"><label><div><b>Reduzir movimento</b><span>Desliga animações decorativas da interface.</span></div><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /></label><label><div><b>Contraste reforçado</b><span>A paleta já foi desenhada para alto contraste.</span></div><span className="setting-badge">ATIVO</span></label><label><div><b>Controles</b><span>W/S ou setas para mover · espaço para pausar.</span></div><span className="setting-badge">TECLADO</span></label></div></section>}
+      {onlineLobbyOpen && <div className="online-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="online-title"><section className="online-modal"><button className="online-close" onClick={() => setOnlineLobbyOpen(false)} aria-label="Fechar"><X size={18} /></button><span className="eyebrow"><Globe2 size={15} /> MESA COMPARTILHADA</span><h2 id="online-title">Jogue com alguém</h2><p>Crie uma sala e envie o código para outra pessoa. Cada jogador controla uma raquete.</p><label className="room-input-label">CÓDIGO DA SALA<input value={onlineCode} maxLength={6} onChange={(event) => { setOnlineCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setOnlineRole("guest"); }} placeholder="ABC123" /></label><div className="online-modal-actions"><button className="primary-button" onClick={() => joinOnlineRoom(onlineRole)} disabled={onlineCode.length !== 6}>{onlineRole === "host" ? "Criar sala" : "Entrar na sala"}<ArrowRight size={17} /></button><button className="secondary-button" onClick={() => { const code = onlineCode || makeRoomCode(); setOnlineCode(code); setOnlineRole("host"); void navigator.clipboard?.writeText(code); }}><Copy size={16} /> Gerar e copiar código</button></div><small>O anfitrião joga com a raquete verde. O convidado usa a raquete coral.</small></section></div>}
     </main>
   );
 }
