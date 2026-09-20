@@ -472,7 +472,9 @@ export function createGameScene(
   window.addEventListener("keyup", onKey);
   window.addEventListener("pring-touch-move", onTouchMove);
   window.addEventListener("pring-touch-pause", onTouchPause);
-  canvas.addEventListener("mousemove", onMouseMove);
+  // Pointer-lock mouse events are dispatched on document, not on the canvas.
+  // Listening there keeps the paddle synchronized after the first click.
+  document.addEventListener("mousemove", onMouseMove);
   canvas.addEventListener("pointerdown", onCanvasPointerDown);
   if (onlineRoom) {
     void onlineRoom.connect({
@@ -490,7 +492,7 @@ export function createGameScene(
   });
   resetBall();
   emit();
-  return Promise.resolve({ scene, dispose: () => { disposed = true; document.exitPointerLock?.(); window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); window.removeEventListener("pring-touch-move", onTouchMove); window.removeEventListener("pring-touch-pause", onTouchPause); canvas.removeEventListener("mousemove", onMouseMove); canvas.removeEventListener("pointerdown", onCanvasPointerDown); void onlineRoom?.close(); scene.dispose(); } });
+  return Promise.resolve({ scene, dispose: () => { disposed = true; document.exitPointerLock?.(); window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); window.removeEventListener("pring-touch-move", onTouchMove); window.removeEventListener("pring-touch-pause", onTouchPause); document.removeEventListener("mousemove", onMouseMove); canvas.removeEventListener("pointerdown", onCanvasPointerDown); void onlineRoom?.close(); scene.dispose(); } });
 }
 
 export class PringPongas {
