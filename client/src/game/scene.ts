@@ -203,8 +203,8 @@ export function createGameScene(
   let disposed = false;
   const demo = new URLSearchParams(window.location.search).has("demo");
   let emitTimer = 0;
-  let mouseX = PADDLE_X_PLAYER;
-  let mouseZ = 0;
+  let mouseTableX = PADDLE_X_PLAYER;
+  let mouseTableZ = 0;
 
   const resetBall = () => {
     if (onlineRoom?.role === "guest") return;
@@ -450,21 +450,24 @@ export function createGameScene(
     emit();
   };
   const onMouseMove = (event: MouseEvent) => {
+    // In first person, screen X is the table width (Z) and screen Y is depth (X).
+    // Moving the mouse up sends the paddle toward the net; moving down brings it back.
     if (document.pointerLockElement === canvas) {
-      mouseX = clamp(mouseX + event.movementX * 0.035, PLAYER_MIN_X, PLAYER_MAX_X);
-      mouseZ = clamp(mouseZ + event.movementY * 0.035, MIN_Z, MAX_Z);
+      mouseTableZ = clamp(mouseTableZ + event.movementX * 0.035, MIN_Z, MAX_Z);
+      mouseTableX = clamp(mouseTableX - event.movementY * 0.035, PLAYER_MIN_X, PLAYER_MAX_X);
     } else {
       const rect = canvas.getBoundingClientRect();
       const horizontal = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-      mouseX = PLAYER_MIN_X + horizontal * (PLAYER_MAX_X - PLAYER_MIN_X);
-      mouseZ = clamp(((event.clientY - rect.top) / rect.height - 0.5) * TABLE_WIDTH, MIN_Z, MAX_Z);
+      const vertical = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+      mouseTableZ = MIN_Z + horizontal * (MAX_Z - MIN_Z);
+      mouseTableX = PLAYER_MAX_X - vertical * (PLAYER_MAX_X - PLAYER_MIN_X);
     }
     if (onlineRoom?.role === "guest") {
-      state.botX = BOT_MIN_X + (mouseX - PLAYER_MIN_X) / (PLAYER_MAX_X - PLAYER_MIN_X) * (BOT_MAX_X - BOT_MIN_X);
-      state.botZ = mouseZ;
+      state.botX = BOT_MAX_X - (mouseTableX - PLAYER_MIN_X) / (PLAYER_MAX_X - PLAYER_MIN_X) * (BOT_MAX_X - BOT_MIN_X);
+      state.botZ = mouseTableZ;
     } else {
-      state.playerX = mouseX;
-      state.playerZ = mouseZ;
+      state.playerX = mouseTableX;
+      state.playerZ = mouseTableZ;
     }
   };
   const onCanvasPointerDown = () => { void canvas.requestPointerLock?.(); };
