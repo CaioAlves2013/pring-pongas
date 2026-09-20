@@ -175,3 +175,9 @@ kbd { padding: 4px 6px; color: var(--white); border: 1px solid rgba(185,181,206,
 .online-modal-actions button:disabled { cursor: not-allowed; opacity: .42; }
 .online-modal small { display: block; margin-top: 20px; color: var(--lavender); font-size: 11px; line-height: 1.6; }
 @media (max-width: 600px) { .hero-actions .online-button { width: 100%; }.online-modal { padding: 26px 20px; }.online-modal h2 { font-size: 34px; } }
+
+.first-person-match .game-canvas-3d { cursor: crosshair; }
+.mouse-hint { position: absolute; right: 18px; bottom: 18px; z-index: 3; display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: var(--white); border: 1px solid rgba(114,215,242,.32); border-radius: 5px; background: rgba(21,21,43,.72); backdrop-filter: blur(6px); font: 9px 'DM Mono', monospace; letter-spacing: .08em; }
+.match-footer > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 900px) { .mouse-hint { right: 12px; bottom: 12px; font-size: 8px; } }
+@media (max-width: 600px) { .mouse-hint { display: none; } }

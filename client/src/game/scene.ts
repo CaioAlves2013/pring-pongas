@@ -1,6 +1,6 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
-import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
@@ -55,12 +55,12 @@ export function createGameScene(
 ): Promise<GameHandle> {
   const scene = new Scene(engine);
   scene.clearColor = color(palette.night).toColor4(1);
-  const camera = new ArcRotateCamera("camera", -Math.PI / 2, 1.04, 20.5, new Vector3(0, 0.78, 0), scene);
-  camera.lowerRadiusLimit = 20.5;
-  camera.upperRadiusLimit = 20.5;
-  camera.lowerBetaLimit = 1.04;
-  camera.upperBetaLimit = 1.04;
-  camera.attachControl(canvas, false);
+  // First-person court view: the player stands behind the green paddle and looks through the table.
+  const camera = new FreeCamera("first-person-camera", new Vector3(PADDLE_X_PLAYER - 1.45, TABLE_TOP + 2.25, 0), scene);
+  camera.setTarget(new Vector3(1.7, TABLE_TOP + 0.35, 0));
+  camera.fov = 0.92;
+  camera.minZ = 0.1;
+  camera.maxZ = 80;
   camera.inputs.clear();
 
   const hemi = new HemisphericLight("arena-light", new Vector3(0, 1, 0), scene);
@@ -171,6 +171,7 @@ export function createGameScene(
   let disposed = false;
   const demo = new URLSearchParams(window.location.search).has("demo");
   let emitTimer = 0;
+  let mouseZ = 0;
 
   const resetBall = () => {
     if (onlineRoom?.role === "guest") return;
@@ -403,10 +404,23 @@ export function createGameScene(
     else if (state.status === "playing") { state.status = "paused"; state.message = "PAUSA"; }
     emit();
   };
+  const onMouseMove = (event: MouseEvent) => {
+    if (document.pointerLockElement === canvas) {
+      mouseZ = clamp(mouseZ + event.movementY * 0.035, MIN_Z, MAX_Z);
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      mouseZ = clamp(((event.clientY - rect.top) / rect.height - 0.5) * TABLE_WIDTH, MIN_Z, MAX_Z);
+    }
+    if (onlineRoom?.role === "guest") state.botZ = mouseZ;
+    else state.playerZ = mouseZ;
+  };
+  const onCanvasPointerDown = () => { void canvas.requestPointerLock?.(); };
   window.addEventListener("keydown", onKey);
   window.addEventListener("keyup", onKey);
   window.addEventListener("pring-touch-move", onTouchMove);
   window.addEventListener("pring-touch-pause", onTouchPause);
+  canvas.addEventListener("mousemove", onMouseMove);
+  canvas.addEventListener("pointerdown", onCanvasPointerDown);
   if (onlineRoom) {
     void onlineRoom.connect({
       onInput: () => undefined,
@@ -423,7 +437,7 @@ export function createGameScene(
   });
   resetBall();
   emit();
-  return Promise.resolve({ scene, dispose: () => { disposed = true; window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); window.removeEventListener("pring-touch-move", onTouchMove); window.removeEventListener("pring-touch-pause", onTouchPause); void onlineRoom?.close(); scene.dispose(); } });
+  return Promise.resolve({ scene, dispose: () => { disposed = true; document.exitPointerLock?.(); window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKey); window.removeEventListener("pring-touch-move", onTouchMove); window.removeEventListener("pring-touch-pause", onTouchPause); canvas.removeEventListener("mousemove", onMouseMove); canvas.removeEventListener("pointerdown", onCanvasPointerDown); void onlineRoom?.close(); scene.dispose(); } });
 }
 
 export class PringPongas {
